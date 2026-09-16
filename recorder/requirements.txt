@@ -1,4 +1,7 @@
 pyserial
 opencv-python
 numpy
+Pillow
+msgpack
+websockets
 pytest

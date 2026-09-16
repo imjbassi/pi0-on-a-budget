@@ -1,0 +1,12 @@
+{
+  "_README": "Fill in once the arm is rebuilt. The converter refuses real data until gripper_open_deg/gripper_closed_deg are set and confirmed_on_hardware is true.",
+  "_joint_zero_deg": "Servo angle treated as 0 rad for base, shoulder, elbow. 90 = servo midpoint; any fixed choice works, but it must never change between training and deployment.",
+  "joint_zero_deg": [90, 90, 90],
+  "_gripper": "Servo angles (within teleop.ino limits 20..160) at fully open and fully closed. Unknown until checked on the arm.",
+  "gripper_open_deg": null,
+  "gripper_closed_deg": null,
+  "_limits": "Must match JOINT_MIN / JOINT_MAX in teleop.ino and policy_follower.ino after pot calibration.",
+  "joint_min_deg": [0, 15, 0, 20],
+  "joint_max_deg": [180, 165, 180, 160],
+  "confirmed_on_hardware": false
+}

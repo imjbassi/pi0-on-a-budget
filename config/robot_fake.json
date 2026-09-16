@@ -1,0 +1,9 @@
+{
+  "_README": "Convention for SYNTHETIC episodes from tools/make_fake_episodes.py only. Never use for real data.",
+  "joint_zero_deg": [90, 90, 90],
+  "gripper_open_deg": 20,
+  "gripper_closed_deg": 160,
+  "joint_min_deg": [0, 15, 0, 20],
+  "joint_max_deg": [180, 165, 180, 160],
+  "confirmed_on_hardware": false
+}

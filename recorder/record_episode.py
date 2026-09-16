@@ -74,11 +74,12 @@ def next_episode_index(outdir):
 
 
 class EpisodeRecorder:
-    def __init__(self, ser, camera, outdir, task, serial_info=None):
+    def __init__(self, ser, camera, outdir, task, serial_info=None, condition=None):
         self.ser = ser
         self.camera = camera
         self.outdir = outdir
         self.task = task
+        self.condition = condition
         self.serial_info = serial_info or {}
 
         self.recording = False
@@ -179,6 +180,7 @@ class EpisodeRecorder:
             "schema_version": SCHEMA_VERSION,
             "episode": self.episode_index,
             "task": self.task,
+            "condition": self.condition,
             "started_at": started_at,
             "duration_sec": round(duration, 3),
             "samples": len(rows),
@@ -307,6 +309,9 @@ def main():
     parser.add_argument("--outdir", default="episodes")
     parser.add_argument("--task", default="unspecified",
                         help="Task description; becomes the language prompt for training")
+    parser.add_argument("--condition",
+                        help="Label for the scene setup (e.g. block_left). Used to stratify "
+                             "held-out splits and to compare open- vs closed-loop per condition")
 
     parser.add_argument("--camera", type=int,
                         help="OpenCV camera index (required: index 0 is often a virtual camera, "
@@ -342,7 +347,7 @@ def main():
 
     ser, serial_info = open_serial(args)
     camera = open_camera(args)
-    recorder = EpisodeRecorder(ser, camera, args.outdir, args.task, serial_info)
+    recorder = EpisodeRecorder(ser, camera, args.outdir, args.task, serial_info, args.condition)
     try:
         recorder.start_streams()
     except RuntimeError as e:

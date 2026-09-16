@@ -140,6 +140,7 @@ class CameraRecorder:
         self.frames_seen = 0          # all frames read, recording or not
         self.read_failures = 0
         self.last_frame_mono = None
+        self.latest = None            # (image, host_mono) of the newest frame
 
         self._reset_episode(None)
 
@@ -212,6 +213,7 @@ class CameraRecorder:
 
             self.frames_seen += 1
             self.last_frame_mono = host_mono
+            self.latest = (image, host_mono)          # single assignment: safe to read from other threads
 
             with self.lock:
                 if not self.recording:

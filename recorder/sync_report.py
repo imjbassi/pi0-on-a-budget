@@ -12,9 +12,9 @@ lines), but the Arduino's millis() ticks are regular. So joint sample times
 are taken from a least-squares fit host_mono ≈ a·device_ms + b, and the
 residual of that fit is reported as serial arrival jitter.
 
-What this can NOT measure: the fixed camera latency (exposure + USB + decode)
-between a physical event and the frame's timestamp. That needs the real arm —
-see README.
+Not measured: the fixed camera delay (exposure + USB + decode) between a
+physical event and the frame's timestamp. Conversion deliberately pairs frames
+by arrival time anyway, because closed_loop.py does the same at deployment.
 
 Usage:
     python sync_report.py episodes/episode_0000_meta.json
@@ -124,9 +124,6 @@ def analyze_episode(meta_path):
         },
         "camera_latency_corrected": meta.get("timing", {}).get("camera_latency_corrected", False),
     }
-    if not alignment_report["camera_latency_corrected"]:
-        warnings.append("camera latency not yet measured — frame/joint alignment has an "
-                        "unknown constant offset")
 
     return {
         "episode": stem,
