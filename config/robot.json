@@ -5,8 +5,8 @@
   "_gripper": "Servo angles (within teleop.ino limits 20..160) at fully open and fully closed. Unknown until checked on the arm.",
   "gripper_open_deg": null,
   "gripper_closed_deg": null,
-  "_limits": "Must match JOINT_MIN / JOINT_MAX in teleop.ino and policy_follower.ino after pot calibration.",
-  "joint_min_deg": [0, 15, 0, 20],
-  "joint_max_deg": [180, 165, 180, 160],
+  "_limits": "Measured with limit_finder.ino on the EEZYbotARM build, 2026-09-19. Must stay identical to JOINT_MIN / JOINT_MAX in teleop.ino and policy_follower.ino.",
+  "joint_min_deg": [0, 60, 75, 40],
+  "joint_max_deg": [180, 130, 120, 180],
   "confirmed_on_hardware": false
 }

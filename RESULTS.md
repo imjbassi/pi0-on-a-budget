@@ -2,6 +2,26 @@
 
 What actually happened, including failures. Newest first.
 
+## 2026-09-19 — Arm rebuilt (EEZYbotARM), joint limits measured
+
+Follower is now a 3D-printed [EEZYbotARM](https://www.instructables.com/EEZYbotARM/) with
+4 SG90s, replacing the acrylic SNAM1500-style kit. Limits found with `limit_finder.ino`:
+
+| Joint | Min | Max | Travel |
+|---|---|---|---|
+| base | 0 | 180 | 180° |
+| shoulder | 60 | 130 | 70° |
+| elbow | 75 | 120 | 45° |
+| gripper | 40 | 180 | 140° |
+
+The linkage costs most of the arm's travel: the shoulder keeps 39% of a servo's range and
+the elbow 25%. Consequences to watch: demonstrations occupy a small joint-space volume, so
+recorded actions will have small variance, which makes the "hold still" open-loop baseline
+even harder to beat. Whether the reachable workspace covers the task at all is the first
+thing to check when placing the camera and the block.
+
+Still unknown: which gripper angle is open vs closed; pot calibration not yet run.
+
 ## 2026-09-16 — 12 GB memory test: first attempt did not produce a measurement
 
 **Setup.** `gello_fake_lora` (π0-FAST, `gemma_2b_lora`, LLM + SigLIP image encoder frozen,

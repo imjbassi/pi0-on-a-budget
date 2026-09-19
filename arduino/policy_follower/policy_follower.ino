@@ -35,8 +35,11 @@ const uint8_t NUM_JOINTS    = 4;
 const uint8_t POT_PINS[]    = {A0, A1, A2, A3};
 const uint8_t SERVO_PINS[]  = {3, 5, 6, 9};
 
-const int  JOINT_MIN[] = {  0,  15,   0,  20};
-const int  JOINT_MAX[] = {180, 165, 180, 160};
+// Measured on the EEZYbotARM build with limit_finder.ino (2026-09-19).
+// The shoulder and elbow are heavily restricted by the linkage; base and
+// gripper reach nearly full travel.
+const int  JOINT_MIN[] = {  0,  60,  75,  40};
+const int  JOINT_MAX[] = {180, 130, 120, 180};
 const bool INVERT[]    = {false, false, false, false};
 const int  POT_MIN[]   = {0, 0, 0, 0};
 const int  POT_MAX[]   = {1023, 1023, 1023, 1023};

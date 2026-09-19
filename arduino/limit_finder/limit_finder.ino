@@ -17,6 +17,8 @@
  *   1 2 3 4   select joint (base / shoulder / elbow / gripper)
  *   a / d     jog -1 / +1 degree
  *   z / c     jog -5 / +5 degrees
+ *   s / w     jog shoulder AND elbow together -1 / +1
+ *   q / e     jog shoulder AND elbow together -5 / +5
  *   n         mark this angle as the joint's MIN
  *   x         mark this angle as the joint's MAX
  *   h         go to 90 degrees (midpoint)
@@ -103,6 +105,29 @@ void jog(int delta) {
     delay(STEP_DELAY_MS);
   }
   printState();
+}
+
+// Move shoulder and elbow together. The linkage couples them, so some pairs
+// of angles collide even though each angle is fine on its own — this is how
+// you explore that without stepping one joint into the other.
+void jogCoupled(int delta) {
+  int target[NUM_JOINTS];
+  for (uint8_t i = 1; i <= 2; i++) {
+    target[i] = constrain(angle[i] + delta, SEARCH_MIN, SEARCH_MAX);
+  }
+  while (angle[1] != target[1] || angle[2] != target[2]) {
+    for (uint8_t i = 1; i <= 2; i++) {
+      if (angle[i] != target[i]) {
+        angle[i] += (target[i] > angle[i]) ? 1 : -1;
+        servos[i].write(angle[i]);
+      }
+    }
+    delay(STEP_DELAY_MS);
+  }
+  Serial.print(F("coupled -> shoulder "));
+  Serial.print(angle[1]);
+  Serial.print(F(" | elbow "));
+  Serial.println(angle[2]);
 }
 
 void setup() {
