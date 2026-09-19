@@ -45,11 +45,16 @@ def test_unconfirmed_gripper_refuses():
         conventions.RobotConvention().deg_to_model([[90, 90, 90, 90]])
 
 
-def test_repo_robot_config_is_unset_until_hardware_confirmed():
+def test_repo_robot_config_matches_the_built_arm():
+    """config/robot.json tracks the real arm: measured limits, gripper 40 closed / 180 open."""
     robot = conventions.RobotConvention.load(os.path.join(ROOT, "config", "robot.json"))
+    robot.require_gripper()
+    assert robot.joint_min_deg == (0, 60, 75, 40)
+    assert robot.joint_max_deg == (180, 130, 120, 180)
+    grip = robot.deg_to_model([[90, 90, 90, 40], [90, 90, 90, 180]])[:, 3]
+    np.testing.assert_allclose(grip, [1.0, 0.0], atol=1e-6)   # 1.0 = closed, per openpi
+    # Flipped to true only after the teleop check; the converter refuses real data until then.
     assert robot.confirmed_on_hardware is False
-    with pytest.raises(ValueError):
-        robot.require_gripper()
 
 
 # ------------------------------------------------------------- images
