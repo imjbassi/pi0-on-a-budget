@@ -42,10 +42,9 @@ const int JOINT_MAX[] = {180, 130, 120, 180};
 // Cheaper than rewiring or remounting a horn.
 const bool INVERT[] = {false, false, false, false};
 
-// Raw ADC range actually reachable on each potentiometer. Run
-// pot_calibrate.ino and paste its output here — most pots don't span the
-// full 0-1023, and calibrating recovers the lost travel at both ends.
-// TODO: not yet calibrated on this build.
+// Raw ADC range actually reachable on each potentiometer.
+// Calibrated 2026-09-19: these WH148s reach both rails on all four channels,
+// so the full range is correct here rather than a placeholder.
 const int POT_MIN[] = {0, 0, 0, 0};
 const int POT_MAX[] = {1023, 1023, 1023, 1023};
 

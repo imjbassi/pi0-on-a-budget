@@ -41,6 +41,8 @@ const uint8_t SERVO_PINS[]  = {3, 5, 6, 9};
 const int  JOINT_MIN[] = {  0,  60,  75,  40};
 const int  JOINT_MAX[] = {180, 130, 120, 180};
 const bool INVERT[]    = {false, false, false, false};
+// Calibrated 2026-09-19: these WH148s reach both rails on all four channels,
+// so full range here is the measured result, not a placeholder.
 const int  POT_MIN[]   = {0, 0, 0, 0};
 const int  POT_MAX[]   = {1023, 1023, 1023, 1023};
 const float SMOOTHING  = 0.35;
