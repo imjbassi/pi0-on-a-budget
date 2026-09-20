@@ -58,6 +58,41 @@ def test_dashboard_state_and_frame_are_thread_safe():
     assert state.jpeg().startswith(b"\xff\xd8")
 
 
+def test_monitor_only_reads_hardware_and_stops_on_dashboard_request():
+    import closed_loop
+    import camera as cam
+    from types import SimpleNamespace
+
+    class Dashboard:
+        def __init__(self):
+            self.values = {}
+            self.frames = 0
+
+        def update(self, **values):
+            self.values.update(values)
+
+        def set_frame(self, image):
+            self.frames += 1
+
+        def controls(self):
+            return ["e_stop"]
+
+    follower = closed_loop.Follower(closed_loop.FakeFollowerSerial())
+    camera = cam.CameraRecorder(cam.FakeSource(64, 48, 30))
+    dashboard = Dashboard()
+    camera.start()
+    try:
+        closed_loop.monitor_hardware(
+            SimpleNamespace(condition="bench"), follower, camera, dashboard)
+    finally:
+        camera.stop()
+        follower.close()
+
+    assert dashboard.frames == 1
+    assert dashboard.values["status"] == "STOPPED"
+    assert follower.mode == "POLICY"
+
+
 def test_closed_loop_follows_policy_and_respects_limits(tmp_path):
     import closed_loop
     import camera as cam

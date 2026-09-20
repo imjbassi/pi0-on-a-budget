@@ -116,6 +116,19 @@ joint angle. No visual joint tracking is required. It also does not invent a
 natural-language chain of thought: π0-FAST returns an action chunk, and that real
 chunk is what the policy panel reports.
 
+To inspect a real camera and Arduino on macOS without loading a policy or
+sending motion commands, use monitor-only mode (servo power may remain
+disconnected):
+```
+python closedloop/closed_loop.py --dashboard --monitor-only --backend any \
+  --port /dev/cu.usbserial-110 --camera 0 --robot-config config/robot.json \
+  --task monitor --condition bench --checkpoint-label monitor
+```
+The Arduino must be running `policy_follower.ino`. Monitor-only mode permits an
+unconfirmed robot config because it only reads telemetry. The dashboard's
+STOP / HOLD button is the sole exception: pressing it sends the firmware's hold
+command and exits the monitor.
+
 Analysis:
 ```
 python -m gello_pi0.analyze --open-loop run1_2999=<.../2999/open_loop/summary.json> --open-loop run1_1000=<...> --closed-loop D:/pi0-on-a-budget-runs/closed_loop

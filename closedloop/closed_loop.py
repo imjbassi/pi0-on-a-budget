@@ -188,6 +188,46 @@ def key_pressed():
     return None
 
 
+def monitor_hardware(args, follower, camera, dashboard):
+    """Show real camera and firmware telemetry without sending motion commands."""
+    settings = camera.source.actual_settings()
+    dashboard.update(
+        status="MONITOR", monitor_only=True, mode=follower.mode or "UNKNOWN",
+        task="hardware monitor — policy commands disabled",
+        condition=args.condition, trial=None, elapsed_s=0.0, max_trial_s=0.0,
+        camera_fps=settings.get("fps_reported_by_driver", 0.0),
+        control_hz=0.0, replan_steps=0, queue_remaining=0,
+        latency_ms=None, inferences=0, events=[])
+    print("[OK] monitor-only: reading camera + Arduino; no motion commands will be sent")
+    print("     Ctrl+C exits. Dashboard STOP / HOLD sends one hold command, then exits.")
+    started = time.perf_counter()
+    try:
+        while True:
+            now = time.perf_counter()
+            latest = camera.latest
+            if latest is not None:
+                image, _ = latest
+                dashboard.set_frame(image)
+            angles = follower.angles()
+            serial_age = None if follower.latest_mono is None else round((now - follower.latest_mono) * 1000)
+            frame_age = None if camera.last_frame_mono is None else round((now - camera.last_frame_mono) * 1000)
+            dashboard.update(
+                elapsed_s=round(now - started, 3), frame=camera.frames_seen,
+                frame_age_ms=frame_age, serial_age_ms=serial_age,
+                firmware_deg=None if angles is None else angles.tolist(),
+                commanded_deg=None, target_deg=None,
+                watchdog_events=follower.watchdog_events,
+                mode=follower.mode or "UNKNOWN")
+            if "e_stop" in dashboard.controls():
+                follower.hold()
+                dashboard.update(status="STOPPED", mode="POLICY")
+                return
+            time.sleep(0.1)
+    except KeyboardInterrupt:
+        dashboard.update(status="STOPPED")
+        print("\n[OK] monitor stopped")
+
+
 def run_trial(args, index, follower, camera, policy, robot, out_root, keys=key_pressed, dashboard=None):
     trial_dir = os.path.join(out_root, f"trial_{index:04d}")
     frames_dir = os.path.join(trial_dir, "frames")
@@ -387,6 +427,8 @@ def main():
                    help="Testing only: end each trial after --max-trial-s with this outcome, no keyboard")
     p.add_argument("--dashboard", action="store_true",
                    help="Serve the live browser dashboard with trial and motion controls")
+    p.add_argument("--monitor-only", action="store_true",
+                   help="Dashboard real camera + Arduino telemetry without loading or commanding a policy")
     p.add_argument("--dashboard-host", default="127.0.0.1")
     p.add_argument("--dashboard-port", type=int, default=8765)
     p.add_argument("--no-dashboard-browser", action="store_true",
@@ -398,8 +440,12 @@ def main():
 
     robot = conventions.RobotConvention.load(args.robot_config)
     robot.require_gripper()
-    if not robot.confirmed_on_hardware and not args.fake_follower:
+    if not robot.confirmed_on_hardware and not args.fake_follower and not args.monitor_only:
         p.error("robot config is not confirmed_on_hardware; refusing to drive the real arm")
+    if args.monitor_only and not args.dashboard:
+        p.error("--monitor-only requires --dashboard")
+    if args.monitor_only and (args.fake_follower or args.fake_camera):
+        p.error("--monitor-only expects a real --port and --camera; do not combine it with fake hardware")
 
     if args.fake_follower:
         ser = FakeFollowerSerial()
@@ -432,6 +478,15 @@ def main():
             checkpoint=args.checkpoint_label, max_trial_s=args.max_trial_s,
             camera_fps=source.actual_settings().get("fps_reported_by_driver", 0.0),
             control_hz=args.fps, replan_steps=args.replan_steps)
+
+    if args.monitor_only:
+        try:
+            monitor_hardware(args, follower, camera, dashboard)
+        finally:
+            camera.stop()
+            follower.close()
+            dashboard.stop()
+        return
 
     if args.fake_policy:
         policy = HoldPolicy()

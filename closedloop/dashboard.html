@@ -53,13 +53,14 @@ $('failure').onclick=()=>control('failure');
 $('stop').onclick=()=>{if(confirm('Software-stop this trial and hold the current command? Use the physical power switch for an emergency.'))control('e_stop')};
 async function refresh(){try{
  const d=await (await fetch('/api/state',{cache:'no-store'})).json();
+ ['pause','success','failure'].forEach(id=>$(id).style.display=d.monitor_only?'none':'');
  $('step').textContent='step '+val(d.frame);$('task').textContent=d.task||'waiting for trial';
  $('runname').textContent='LIVE RUN · '+(d.trial===null?'waiting':'trial_'+String(d.trial).padStart(4,'0'))+' · '+(d.condition||'—');
  $('meta').textContent='π0-FAST + LoRA | closed-loop | camera '+(+d.camera_fps||0).toFixed(1)+' FPS | control '+(+d.control_hz||0).toFixed(1)+' Hz';
  $('live').textContent=d.paused?'● PAUSED':d.status==='RUNNING'?'● LIVE':'● '+d.status;$('live').className=d.paused?'paused':d.status==='RUNNING'?'live':'warn';
  $('caminfo').textContent='frame age '+val(d.frame_age_ms)+' ms';
  $('observation').textContent='Camera frame '+val(d.frame)+'. Firmware state '+angles(d.firmware_deg).join(', ')+'. Frame age '+val(d.frame_age_ms)+' ms.';
- $('policy').textContent=d.action_chunk_deg&&d.action_chunk_deg.length?'Latest action chunk: '+d.action_chunk_deg.length+' poses. Executing '+d.queue_remaining+' remaining before replanning.':'Waiting for the first action chunk. π0-FAST emits actions directly; no text reasoning is fabricated.';
+ $('policy').textContent=d.monitor_only?'Policy disabled. This mode reads the camera and Arduino stream without sending motion commands.':d.action_chunk_deg&&d.action_chunk_deg.length?'Latest action chunk: '+d.action_chunk_deg.length+' poses. Executing '+d.queue_remaining+' remaining before replanning.':'Waiting for the first action chunk. π0-FAST emits actions directly; no text reasoning is fabricated.';
  $('action').textContent='target  [ '+angles(d.target_deg).join(', ')+' ]\ncommand [ '+angles(d.commanded_deg).join(', ')+' ]';
  $('memory').textContent=(d.checkpoint||'checkpoint —')+' · '+(d.condition||'condition —')+' · inference '+d.inferences+' · '+(d.outcome||d.status.toLowerCase());
  const f=angles(d.firmware_deg),c=angles(d.commanded_deg),colors=['#168ce2','#18b864','#f59a12','#e52670'];
