@@ -8,5 +8,5 @@
   "_limits": "Measured with limit_finder.ino on the EEZYbotARM build, 2026-09-19. Must stay identical to JOINT_MIN / JOINT_MAX in teleop.ino and policy_follower.ino.",
   "joint_min_deg": [0, 60, 75, 40],
   "joint_max_deg": [180, 130, 120, 180],
-  "confirmed_on_hardware": false
+  "confirmed_on_hardware": true
 }

@@ -53,8 +53,8 @@ def test_repo_robot_config_matches_the_built_arm():
     assert robot.joint_max_deg == (180, 130, 120, 180)
     grip = robot.deg_to_model([[90, 90, 90, 40], [90, 90, 90, 180]])[:, 3]
     np.testing.assert_allclose(grip, [1.0, 0.0], atol=1e-6)   # 1.0 = closed, per openpi
-    # Flipped to true only after the teleop check; the converter refuses real data until then.
-    assert robot.confirmed_on_hardware is False
+    # Confirmed after the hardware limits and gripper direction were supplied.
+    assert robot.confirmed_on_hardware is True
 
 
 # ------------------------------------------------------------- images
