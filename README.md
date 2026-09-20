@@ -113,6 +113,11 @@ software stop, not an emergency stop: the physical power switch remains the
 emergency control. Use
 `--no-dashboard-browser` to serve it without opening a browser automatically.
 
+![Live π0-FAST shadow-policy dashboard showing the Logitech Brio 101 camera, Arduino joint telemetry, RTX action predictions, latency, safety state, and inference timeline](docs/images/shadow-dashboard.png)
+
+*Real Mac-to-RTX shadow run with the Logitech Brio 101 and EEZYbotARM. The
+policy predictions are displayed but deliberately not executed.*
+
 The dashboard deliberately labels the joint display **firmware → command**.
 The SG90/MG90S servos have no encoder feedback, so neither value is a measured physical
 joint angle. No visual joint tracking is required. It also does not invent a
