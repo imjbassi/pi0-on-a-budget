@@ -2,8 +2,9 @@
 
 Fine-tuning Physical Intelligence's [π0-FAST](https://github.com/Physical-Intelligence/openpi)
 with LoRA on a consumer RTX 4070 (12 GB), using demonstrations from
-[gello-lite](https://github.com/imjbassi/gello-lite), a 4-DOF hobby-servo
-potentiometer-leader teleoperation arm, then evaluating open-loop vs closed-loop.
+[gello-lite](https://github.com/imjbassi/gello-lite), a custom-built,
+**3D-printed 4-DOF EEZYbotARM** with a potentiometer leader and hobby-servo
+follower, then evaluating open-loop vs closed-loop.
 
 ![Live π0-FAST shadow-policy dashboard showing the Logitech Brio 101 camera, Arduino joint telemetry, RTX action predictions, latency, safety state, and inference timeline](docs/images/shadow-dashboard.png)
 
