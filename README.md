@@ -129,6 +129,37 @@ unconfirmed robot config because it only reads telemetry. The dashboard's
 STOP / HOLD button is the sole exception: pressing it sends the firmware's hold
 command and exits the monitor.
 
+### RTX policy shadow mode
+
+Shadow mode sends the real camera image and Arduino state to a real policy
+server, displays its latency and predicted action chunks, and never forwards
+those actions to the Arduino. The arm remains in TELEOP and may be moved with
+the leader while recording the dashboard.
+
+Prepare a lightweight shadow checkpoint on the RTX PC:
+```
+wsl bash wsl/prepare_shadow_checkpoint.sh
+```
+
+Start the RTX server from the repository root:
+```
+wsl bash wsl/run.sh python -m gello_pi0.run serve --port 8000 \
+  policy:checkpoint --policy.config gello_fake_lora \
+  --policy.dir /mnt/d/pi0-on-a-budget-runs/shadow/pi0_fast_gello_fake
+```
+
+Then run on the Mac, replacing `WINDOWS_PC_IP`:
+```
+python closedloop/closed_loop.py --dashboard --shadow-policy --backend any \
+  --port /dev/cu.usbserial-110 --camera 0 \
+  --server ws://WINDOWS_PC_IP:8000 --robot-config config/robot.json \
+  --task "pick up the red block" --condition block_center \
+  --checkpoint-label base_shadow --trials 1 --max-trial-s 60
+```
+
+The base model and synthetic normalization statistics are not a trained
+real-arm policy. The UI labels this mode `RTX POLICY · SHADOW · NOT EXECUTED`.
+
 Analysis:
 ```
 python -m gello_pi0.analyze --open-loop run1_2999=<.../2999/open_loop/summary.json> --open-loop run1_1000=<...> --closed-loop D:/pi0-on-a-budget-runs/closed_loop

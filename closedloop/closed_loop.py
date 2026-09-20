@@ -228,6 +228,86 @@ def monitor_hardware(args, follower, camera, dashboard):
         print("\n[OK] monitor stopped")
 
 
+def run_shadow_policy(args, follower, camera, policy, robot, dashboard):
+    """Run real remote inference while leaving all model actions unexecuted."""
+    settings = camera.source.actual_settings()
+    dashboard.update(
+        status="SHADOW", shadow_policy=True, monitor_only=False,
+        mode=follower.mode or "TELEOP", task=args.task,
+        condition=args.condition, trial=None, elapsed_s=0.0,
+        max_trial_s=args.max_trial_s,
+        camera_fps=settings.get("fps_reported_by_driver", 0.0),
+        control_hz=0.0, replan_steps=args.replan_steps,
+        queue_remaining=0, latency_ms=None, inferences=0,
+        action_chunk_deg=[], events=[])
+    print("[OK] RTX policy shadow mode: predictions are displayed but NEVER sent to the Arduino")
+    print("     Move with TELEOP/pots. Ctrl+C exits; STOP / HOLD sends one hold command.")
+    started = time.perf_counter()
+    inference_count = 0
+    paused = False
+    try:
+        while True:
+            now = time.perf_counter()
+            elapsed = now - started
+            latest = camera.latest
+            angles = follower.angles()
+            if latest is not None:
+                image, frame_mono = latest
+                dashboard.set_frame(image)
+            else:
+                frame_mono = None
+
+            for control in dashboard.controls():
+                if control == "e_stop":
+                    follower.hold()
+                    dashboard.update(status="STOPPED", mode="POLICY")
+                    return
+                if control in ("success", "failure"):
+                    dashboard.update(status=control.upper(), outcome=control)
+                    return
+                if control == "toggle_pause":
+                    paused = not paused
+                    dashboard.update(paused=paused)
+
+            serial_age = None if follower.latest_mono is None else round((now - follower.latest_mono) * 1000)
+            frame_age = None if camera.last_frame_mono is None else round((now - camera.last_frame_mono) * 1000)
+            dashboard.update(
+                elapsed_s=round(elapsed, 3), frame=camera.frames_seen,
+                frame_age_ms=frame_age, serial_age_ms=serial_age,
+                firmware_deg=None if angles is None else angles.tolist(),
+                commanded_deg=None, watchdog_events=follower.watchdog_events,
+                mode=follower.mode or "TELEOP")
+
+            if not paused and latest is not None and angles is not None:
+                image, frame_mono = latest
+                model_image = conventions.preprocess_image(image, bgr=True)
+                obs = {
+                    "observation/image": model_image,
+                    "observation/state": robot.deg_to_model(angles),
+                    "prompt": args.task,
+                }
+                t0 = time.perf_counter()
+                chunk_model = np.asarray(policy.infer(obs)["actions"], dtype=np.float64)
+                latency = time.perf_counter() - t0
+                chunk_deg = robot.model_to_deg(chunk_model, clamp=True)
+                inference_count += 1
+                dashboard.update(
+                    latency_ms=round(latency * 1000),
+                    frame_age_ms=round((t0 - frame_mono) * 1000),
+                    target_deg=np.round(chunk_deg[0], 2).tolist(),
+                    action_chunk_deg=np.round(chunk_deg, 2).tolist(),
+                    inferences=inference_count)
+                dashboard.add_event(f"RTX {inference_count}", elapsed)
+
+            if elapsed >= args.max_trial_s:
+                dashboard.update(status="COMPLETE", outcome="shadow_complete")
+                return
+            time.sleep(0.01)
+    except KeyboardInterrupt:
+        dashboard.update(status="STOPPED")
+        print("\n[OK] shadow mode stopped")
+
+
 def run_trial(args, index, follower, camera, policy, robot, out_root, keys=key_pressed, dashboard=None):
     trial_dir = os.path.join(out_root, f"trial_{index:04d}")
     frames_dir = os.path.join(trial_dir, "frames")
@@ -429,6 +509,8 @@ def main():
                    help="Serve the live browser dashboard with trial and motion controls")
     p.add_argument("--monitor-only", action="store_true",
                    help="Dashboard real camera + Arduino telemetry without loading or commanding a policy")
+    p.add_argument("--shadow-policy", action="store_true",
+                   help="Run real policy inference for the dashboard but never send its actions to the Arduino")
     p.add_argument("--dashboard-host", default="127.0.0.1")
     p.add_argument("--dashboard-port", type=int, default=8765)
     p.add_argument("--no-dashboard-browser", action="store_true",
@@ -444,6 +526,10 @@ def main():
         p.error("robot config is not confirmed_on_hardware; refusing to drive the real arm")
     if args.monitor_only and not args.dashboard:
         p.error("--monitor-only requires --dashboard")
+    if args.shadow_policy and not args.dashboard:
+        p.error("--shadow-policy requires --dashboard")
+    if args.monitor_only and args.shadow_policy:
+        p.error("--monitor-only and --shadow-policy are mutually exclusive")
     if args.monitor_only and (args.fake_follower or args.fake_camera):
         p.error("--monitor-only expects a real --port and --camera; do not combine it with fake hardware")
 
@@ -494,6 +580,16 @@ def main():
         from gello_pi0.policy_client import PolicyClient
         policy = PolicyClient(args.server)
     print(f"[OK] policy: {policy.metadata}")
+
+    if args.shadow_policy:
+        try:
+            run_shadow_policy(args, follower, camera, policy, robot, dashboard)
+        finally:
+            camera.stop()
+            follower.close()
+            policy.close()
+            dashboard.stop()
+        return
 
     out_root = os.path.join(args.outdir, args.checkpoint_label)
     os.makedirs(out_root, exist_ok=True)

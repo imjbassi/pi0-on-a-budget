@@ -45,6 +45,7 @@ class DashboardState:
             "action_chunk_deg": [],
             "paused": False,
             "monitor_only": False,
+            "shadow_policy": False,
             "outcome": None,
             "events": [],
             "updated_at": time.time(),

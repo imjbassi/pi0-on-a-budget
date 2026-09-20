@@ -93,6 +93,63 @@ def test_monitor_only_reads_hardware_and_stops_on_dashboard_request():
     assert follower.mode == "POLICY"
 
 
+def test_shadow_policy_infers_without_commanding_follower():
+    import closed_loop
+    import camera as cam
+    from types import SimpleNamespace
+
+    robot = conventions.RobotConvention(
+        gripper_open_deg=180, gripper_closed_deg=40,
+        joint_min_deg=(0, 60, 75, 40), joint_max_deg=(180, 130, 120, 180),
+        confirmed_on_hardware=True)
+
+    class Policy:
+        calls = 0
+
+        def infer(self, obs):
+            self.calls += 1
+            return {"actions": np.repeat(obs["observation/state"][None], 3, axis=0)}
+
+    class Dashboard:
+        def __init__(self):
+            self.values = {}
+            self.control_calls = 0
+
+        def update(self, **values):
+            self.values.update(values)
+
+        def set_frame(self, image):
+            pass
+
+        def add_event(self, *args):
+            pass
+
+        def controls(self):
+            self.control_calls += 1
+            return ["success"] if self.control_calls > 1 else []
+
+    serial = closed_loop.FakeFollowerSerial(start_deg=(90, 95, 100, 100))
+    follower = closed_loop.Follower(serial)
+    camera = cam.CameraRecorder(cam.FakeSource(64, 48, 30))
+    policy = Policy()
+    dashboard = Dashboard()
+    camera.start()
+    import time
+    time.sleep(0.1)
+    try:
+        closed_loop.run_shadow_policy(
+            SimpleNamespace(task="test", condition="bench", max_trial_s=5, replan_steps=5),
+            follower, camera, policy, robot, dashboard)
+    finally:
+        camera.stop()
+        follower.close()
+
+    assert policy.calls == 1
+    assert serial.mode == "TELEOP"
+    assert dashboard.values["shadow_policy"] is True
+    assert dashboard.values["inferences"] == 1
+
+
 def test_closed_loop_follows_policy_and_respects_limits(tmp_path):
     import closed_loop
     import camera as cam
