@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>π0-FAST Live Run</title>
+<style>
+:root{--ink:#172238;--muted:#697386;--line:#dce2ea;--panel:#fff;--bg:#f5f7fa;--blue:#168ce2;--orange:#f59a12;--pink:#e52670;--violet:#8155e6;--green:#18b864;--red:#e53945}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:"IBM Plex Mono","SFMono-Regular",Consolas,"Liberation Mono",monospace;font-size:13px}
+body{padding:10px}.shell{height:calc(100vh - 20px);display:grid;grid-template-columns:minmax(320px,31%) 1fr;gap:10px}.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:0 1px 2px #14213d0a}
+.left{padding:18px;overflow:auto}.titlebar,.runhead{display:flex;align-items:center;justify-content:space-between;gap:12px}.title{font-weight:800;font-size:18px;letter-spacing:-.4px}.step{color:#0772c8;font-weight:800;font-size:15px}.task{border:1px solid var(--line);border-radius:5px;padding:14px;margin:18px 0 14px;line-height:1.4}
+.section{padding:6px 0 6px 18px;margin:12px 0 22px;border-left:4px solid}.section h2{font-size:15px;margin:0 0 12px}.section p,.section pre{font-family:inherit;white-space:pre-wrap;line-height:1.65;margin:0}.obs{border-color:var(--orange)}.obs h2{color:#d98200}.policy{border-color:var(--blue)}.policy h2{color:#087ecf}.action{border-color:var(--pink)}.action h2{color:#d91e64}.memory{border-color:var(--violet)}.memory h2{color:#7545dc}
+.main{min-width:0;display:grid;grid-template-rows:auto minmax(280px,1fr) auto auto;overflow:hidden}.runhead{padding:12px 16px;border-bottom:1px solid var(--line)}.runname{font-size:18px;font-weight:800}.meta{color:var(--muted);margin-top:6px}.buttons{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.btn{font:inherit;font-weight:700;padding:9px 13px;background:#fff;border:1px solid var(--line);border-radius:5px;cursor:pointer}.btn:hover{background:#f4f8ff}.pause{color:#3c4960}.success{color:var(--green);border-color:#8fdfb2}.failure,.stop{color:var(--red);border-color:#ff9ca3;background:#fff7f7}.failure:hover,.stop:hover{background:#ffe8e9}
+.camera{position:relative;background:#10151c;overflow:hidden;display:flex;align-items:center;justify-content:center}.camera img{width:100%;height:100%;object-fit:contain}.camtag{position:absolute;top:12px;left:12px;padding:6px 9px;border-radius:4px;background:#07121dcc;color:#fff}.live{color:#63e792}.paused{color:#ffd35e}.crosshair{position:absolute;left:50%;top:50%;width:24px;height:24px;border:1px solid #31a9ff80;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none}.crosshair:before,.crosshair:after{content:"";position:absolute;background:#31a9ff80}.crosshair:before{width:34px;height:1px;left:-6px;top:11px}.crosshair:after{height:34px;width:1px;top:-6px;left:11px}
+.telemetry{padding:10px;display:grid;grid-template-columns:1.25fr 1fr 1fr 1fr;gap:10px;border-top:1px solid var(--line)}.metric{border:1px solid var(--line);border-radius:5px;padding:12px;min-width:0}.metric h3{font-size:13px;color:#087acb;margin:0 0 10px}.row{display:grid;grid-template-columns:1fr auto;gap:10px;margin:7px 0}.good{color:var(--green);font-weight:800}.warn{color:var(--orange);font-weight:800}.bad{color:var(--red);font-weight:800}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:8px}.legend{font-size:11px;color:var(--muted);font-weight:400}
+.timeline{padding:10px 14px 16px;border-top:1px solid var(--line)}.timehead{display:flex;justify-content:space-between;margin-bottom:10px}.track{height:34px;border-top:3px solid #dfe5ec;position:relative}.progress{height:3px;background:var(--blue);position:absolute;left:0;top:-3px}.event{position:absolute;top:-7px;transform:translateX(-50%)}.event:before{content:"";display:block;width:10px;height:10px;border-radius:50%;background:currentColor;border:2px solid white;box-shadow:0 0 0 1px currentColor}.event span{position:absolute;top:14px;white-space:nowrap;transform:translateX(-40%);font-size:11px}.foot{color:var(--muted);font-size:11px}
+@media(max-width:980px){body{height:auto}.shell{height:auto;grid-template-columns:1fr}.left{max-height:none}.main{min-height:780px}.telemetry{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body><div class="shell">
+<aside class="card left">
+  <div class="titlebar"><div class="title">π0-FAST output @ playhead</div><div class="step" id="step">step —</div></div>
+  <div class="task"><b>TASK:</b> <span id="task">waiting for trial</span></div>
+  <section class="section obs"><h2>OBSERVATION</h2><p id="observation">Waiting for camera and controller telemetry.</p></section>
+  <section class="section policy"><h2>POLICY OUTPUT</h2><p id="policy">π0-FAST emits an action chunk, not natural-language reasoning.</p></section>
+  <section class="section action"><h2>ACTION</h2><pre id="action">target  —
+command —</pre></section>
+  <section class="section memory"><h2>RUN STATE</h2><p id="memory">No trial active.</p></section>
+  <div class="foot">Joint values are servo commands/firmware state. SG90 servos do not provide physical position feedback.</div>
+</aside>
+<main class="card main">
+  <header class="runhead"><div><div class="runname" id="runname">LIVE RUN · waiting</div><div class="meta" id="meta">π0-FAST + LoRA | closed-loop</div></div><div class="buttons"><button class="btn pause" id="pause">Ⅱ Pause</button><button class="btn success" id="success">✓ Success</button><button class="btn failure" id="failure">× Failure</button><button class="btn stop" id="stop">■ STOP / HOLD</button></div></header>
+  <div class="camera"><img id="frame" alt="Live robot camera"><div class="camtag"><span class="live" id="live">● LIVE</span> · <span id="caminfo">camera —</span></div><div class="crosshair"></div></div>
+  <div class="telemetry">
+    <section class="metric"><h3>JOINT STATE <span class="legend">firmware → command</span></h3><div id="joints"></div></section>
+    <section class="metric"><h3>MODEL</h3><div id="model"></div></section>
+    <section class="metric"><h3>SAFETY</h3><div id="safety"></div></section>
+    <section class="metric"><h3>RUN</h3><div id="run"></div></section>
+  </div>
+  <div class="timeline"><div class="timehead"><span>Software stop holds pose · physical power switch is the emergency stop</span><span id="time">00:00.0 / 00:00.0</span></div><div class="track"><div class="progress" id="progress"></div><div id="events"></div></div></div>
+</main>
+</div>
+<script>
+const $=id=>document.getElementById(id),names=['BASE','SHOULDER','ELBOW','GRIPPER'];
+const val=(x,s='—')=>x===null||x===undefined?s:x;
+const fmtTime=s=>{s=Math.max(0,+s||0);return String(Math.floor(s/60)).padStart(2,'0')+':'+(s%60).toFixed(1).padStart(4,'0')};
+const rows=o=>Object.entries(o).map(x=>'<div class="row"><span>'+x[0]+'</span><span>'+x[1]+'</span></div>').join('');
+function angles(a){return a?a.map(x=>(+x).toFixed(1)+'°'):names.map(()=> '—')}
+async function control(action){await fetch('/api/control',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:action})})}
+$('pause').onclick=()=>control('toggle_pause');
+$('success').onclick=()=>control('success');
+$('failure').onclick=()=>control('failure');
+$('stop').onclick=()=>{if(confirm('Software-stop this trial and hold the current command? Use the physical power switch for an emergency.'))control('e_stop')};
+async function refresh(){try{
+ const d=await (await fetch('/api/state',{cache:'no-store'})).json();
+ $('step').textContent='step '+val(d.frame);$('task').textContent=d.task||'waiting for trial';
+ $('runname').textContent='LIVE RUN · '+(d.trial===null?'waiting':'trial_'+String(d.trial).padStart(4,'0'))+' · '+(d.condition||'—');
+ $('meta').textContent='π0-FAST + LoRA | closed-loop | camera '+(+d.camera_fps||0).toFixed(1)+' FPS | control '+(+d.control_hz||0).toFixed(1)+' Hz';
+ $('live').textContent=d.paused?'● PAUSED':d.status==='RUNNING'?'● LIVE':'● '+d.status;$('live').className=d.paused?'paused':d.status==='RUNNING'?'live':'warn';
+ $('caminfo').textContent='frame age '+val(d.frame_age_ms)+' ms';
+ $('observation').textContent='Camera frame '+val(d.frame)+'. Firmware state '+angles(d.firmware_deg).join(', ')+'. Frame age '+val(d.frame_age_ms)+' ms.';
+ $('policy').textContent=d.action_chunk_deg&&d.action_chunk_deg.length?'Latest action chunk: '+d.action_chunk_deg.length+' poses. Executing '+d.queue_remaining+' remaining before replanning.':'Waiting for the first action chunk. π0-FAST emits actions directly; no text reasoning is fabricated.';
+ $('action').textContent='target  [ '+angles(d.target_deg).join(', ')+' ]\ncommand [ '+angles(d.commanded_deg).join(', ')+' ]';
+ $('memory').textContent=(d.checkpoint||'checkpoint —')+' · '+(d.condition||'condition —')+' · inference '+d.inferences+' · '+(d.outcome||d.status.toLowerCase());
+ const f=angles(d.firmware_deg),c=angles(d.commanded_deg),colors=['#168ce2','#18b864','#f59a12','#e52670'];
+ $('joints').innerHTML=names.map((n,i)=>'<div class="row"><span><i class="dot" style="background:'+colors[i]+'"></i>'+n+'</span><span>'+f[i]+' → '+c[i]+'</span></div>').join('');
+ $('model').innerHTML=rows({'inference':d.latency_ms==null?'—':d.latency_ms+' ms','replan steps':d.replan_steps,'queue':d.queue_remaining,'inferences':d.inferences});
+ const serialOk=d.serial_age_ms!==null&&d.serial_age_ms<250;
+ $('safety').innerHTML=rows({'status':'<b class="'+(d.status==='RUNNING'?'good':'warn')+'">● '+(d.paused?'HOLDING':d.status)+'</b>','limits':'PC + Arduino','serial':serialOk?'<span class="good">'+d.serial_age_ms+' ms</span>':'<span class="warn">'+val(d.serial_age_ms)+' ms</span>','watchdogs':d.watchdog_events});
+ $('run').innerHTML=rows({'elapsed':fmtTime(d.elapsed_s),'frame':d.frame,'condition':d.condition||'—','mode':d.mode||'—'});
+ $('pause').textContent=d.paused?'▶ Resume':'Ⅱ Pause';$('time').textContent=fmtTime(d.elapsed_s)+' / '+fmtTime(d.max_trial_s);
+ const pct=d.max_trial_s?Math.min(100,100*d.elapsed_s/d.max_trial_s):0;$('progress').style.width=pct+'%';
+ $('events').innerHTML=(d.events||[]).map(e=>'<div class="event" style="left:'+Math.min(100,100*e.t/(d.max_trial_s||1))+'%;color:'+(e.color==='pink'?'#e52670':e.color==='orange'?'#f59a12':'#168ce2')+'"><span>'+e.label+'</span></div>').join('');
+ $('frame').src='/api/frame.jpg?t='+Date.now();
+}catch(e){$('live').textContent='● DISCONNECTED';$('live').className='bad'}}
+setInterval(refresh,100);refresh();
+</script></body></html>

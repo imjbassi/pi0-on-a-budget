@@ -95,9 +95,26 @@ bash wsl/run.sh python -m gello_pi0.eval_open_loop --config gello_lora --checkpo
 Closed-loop: flash `arduino/policy_follower`, start the server in WSL, run trials on Windows:
 ```
 bash wsl/run.sh python -m gello_pi0.run serve policy:checkpoint --policy.config gello_lora --policy.dir /mnt/d/pi0-on-a-budget-runs/checkpoints/gello_lora/run1/2999
-python closedloop/closed_loop.py --port COM3 --camera 0 --robot-config config/robot.json --task "pick up the red block" --condition block_left --checkpoint-label run1_2999 --trials 10 --outdir D:/pi0-on-a-budget-runs/closed_loop
+python closedloop/closed_loop.py --dashboard --port COM3 --camera 0 --robot-config config/robot.json --task "pick up the red block" --condition block_left --checkpoint-label run1_2999 --trials 10 --outdir D:/pi0-on-a-budget-runs/closed_loop
 ```
 Try it with no hardware first: `python closedloop/closed_loop.py --dry-run --robot-config config/robot_fake.json --task t --condition c --checkpoint-label dry --trials 1`.
+
+### Live dashboard
+
+Add `--dashboard` to a closed-loop run. It opens `http://127.0.0.1:8765/` and
+shows the live camera, policy action chunk, commanded joint values, inference
+latency, frame/serial age, watchdog count, trial state, and timeline. Pause holds
+the current command; Success and Failure score the trial on macOS or Windows;
+STOP / HOLD aborts the trial and holds the pose. This is a
+software stop, not an emergency stop: the physical power switch remains the
+emergency control. Use
+`--no-dashboard-browser` to serve it without opening a browser automatically.
+
+The dashboard deliberately labels the joint display **firmware → command**.
+SG90 servos have no encoder feedback, so neither value is a measured physical
+joint angle. No visual joint tracking is required. It also does not invent a
+natural-language chain of thought: π0-FAST returns an action chunk, and that real
+chunk is what the policy panel reports.
 
 Analysis:
 ```

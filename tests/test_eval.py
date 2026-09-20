@@ -43,6 +43,21 @@ def test_policy_client_wire_format_round_trip():
     assert back["observation/image"].shape == (224, 224, 3) and back["observation/image"].dtype == np.uint8
 
 
+def test_dashboard_state_and_frame_are_thread_safe():
+    import dashboard
+
+    state = dashboard.DashboardState()
+    state.update(status="RUNNING", commanded_deg=[90, 80, 100, 40])
+    state.add_event("start", 0.0)
+    state.set_frame(np.zeros((48, 64, 3), dtype=np.uint8))
+
+    snap = state.snapshot()
+    assert snap["status"] == "RUNNING"
+    assert snap["commanded_deg"] == [90, 80, 100, 40]
+    assert snap["events"] == [{"label": "start", "t": 0.0, "color": "blue"}]
+    assert state.jpeg().startswith(b"\xff\xd8")
+
+
 def test_closed_loop_follows_policy_and_respects_limits(tmp_path):
     import closed_loop
     import camera as cam

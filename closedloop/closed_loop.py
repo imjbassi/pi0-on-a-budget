@@ -188,7 +188,7 @@ def key_pressed():
     return None
 
 
-def run_trial(args, index, follower, camera, policy, robot, out_root, keys=key_pressed):
+def run_trial(args, index, follower, camera, policy, robot, out_root, keys=key_pressed, dashboard=None):
     trial_dir = os.path.join(out_root, f"trial_{index:04d}")
     frames_dir = os.path.join(trial_dir, "frames")
     os.makedirs(frames_dir, exist_ok=True)
@@ -202,16 +202,75 @@ def run_trial(args, index, follower, camera, policy, robot, out_root, keys=key_p
     outcome, note = None, ""
     period = 1.0 / args.fps
     t_start = time.perf_counter()
+    paused = False
+    pause_started = None
+    paused_total = 0.0
+    dashboard_frame_due = 0.0
     next_tick = t_start
     follower.hold()                                  # enter POLICY mode at the current pose
+    if dashboard:
+        settings = camera.source.actual_settings()
+        dashboard.update(
+            status="RUNNING", mode="POLICY", task=args.task,
+            condition=getattr(args, "condition", ""), trial=index,
+            elapsed_s=0.0, max_trial_s=args.max_trial_s,
+            camera_fps=settings.get("fps_reported_by_driver", 0.0),
+            control_hz=args.fps, replan_steps=args.replan_steps,
+            firmware_deg=start_deg.tolist(), commanded_deg=start_deg.tolist(),
+            target_deg=start_deg.tolist(), action_chunk_deg=[], queue_remaining=0,
+            latency_ms=None, inferences=0, watchdog_events=follower.watchdog_events,
+            paused=False, outcome=None, events=[])
+        dashboard.add_event("start", 0.0)
 
     while True:
         now = time.perf_counter()
-        elapsed = now - t_start
+        elapsed = now - t_start - paused_total - ((now - pause_started) if paused else 0.0)
+        if dashboard:
+            for control in dashboard.controls():
+                if control == "e_stop":
+                    outcome = "aborted"
+                    follower.hold()
+                    dashboard.add_event("stop / hold", elapsed, "pink")
+                elif control in ("success", "failure"):
+                    outcome = control
+                    follower.hold()
+                    dashboard.add_event(control, elapsed, "pink" if control == "failure" else "blue")
+                elif control == "toggle_pause":
+                    paused = not paused
+                    if paused:
+                        pause_started = now
+                        follower.hold()
+                        dashboard.add_event("pause", elapsed, "orange")
+                    else:
+                        paused_total += now - pause_started
+                        pause_started = None
+                        next_tick = time.perf_counter()
+                        dashboard.add_event("resume", elapsed)
+                dashboard.update(paused=paused)
+            if outcome:
+                break
+
+            latest = camera.latest
+            if latest is not None and now >= dashboard_frame_due:
+                image, frame_mono = latest
+                dashboard.set_frame(image)
+                dashboard_frame_due = now + 0.1
+            echo_now = follower.angles()
+            serial_age = None if follower.latest_mono is None else round((now - follower.latest_mono) * 1000)
+            frame_age = None if camera.last_frame_mono is None else round((now - camera.last_frame_mono) * 1000)
+            dashboard.update(
+                elapsed_s=round(elapsed, 3), frame=camera.frames_seen,
+                frame_age_ms=frame_age, serial_age_ms=serial_age,
+                firmware_deg=None if echo_now is None else echo_now.tolist(),
+                watchdog_events=follower.watchdog_events, mode=follower.mode or "POLICY")
+
         key = keys()
         if key in ("s", "f", " "):
             outcome = {"s": "success", "f": "failure", " ": "aborted"}[key]
             break
+        if paused:
+            time.sleep(0.05)
+            continue
         if elapsed > args.max_trial_s:
             outcome = "timeout"
             break
@@ -241,6 +300,12 @@ def run_trial(args, index, follower, camera, policy, robot, out_root, keys=key_p
                 "state_deg": state_deg.tolist(), "chunk_deg": np.round(chunk_deg, 2).tolist(),
             })
             inferred = True
+            if dashboard:
+                dashboard.update(
+                    latency_ms=round(latency * 1000),
+                    action_chunk_deg=np.round(chunk_deg, 2).tolist(),
+                    queue_remaining=len(queue), inferences=len(inference_log))
+                dashboard.add_event(f"replan {len(inference_log)}", elapsed)
             next_tick = time.perf_counter()          # don't try to "catch up" after thinking
 
         target = queue.pop(0)
@@ -255,6 +320,12 @@ def run_trial(args, index, follower, camera, policy, robot, out_root, keys=key_p
             **{f"echo_{j}": (int(v) if echo is not None else "") for j, v in
                zip(conventions.JOINTS, echo if echo is not None else [None] * 4)},
         })
+        if dashboard:
+            dashboard.update(
+                target_deg=np.round(target, 2).tolist(),
+                commanded_deg=sent.astype(float).tolist(),
+                firmware_deg=None if echo is None else echo.tolist(),
+                queue_remaining=len(queue))
 
         next_tick += period
         sleep = next_tick - time.perf_counter()
@@ -262,7 +333,13 @@ def run_trial(args, index, follower, camera, policy, robot, out_root, keys=key_p
             time.sleep(sleep)
 
     follower.hold()
-    duration = time.perf_counter() - t_start
+    now = time.perf_counter()
+    duration = now - t_start - paused_total - ((now - pause_started) if paused else 0.0)
+    if dashboard:
+        dashboard.update(
+            status=outcome.upper(), paused=False, outcome=outcome,
+            elapsed_s=round(duration, 3), queue_remaining=0)
+        dashboard.add_event(outcome, duration, "pink" if outcome in ("failure", "aborted", "timeout") else "blue")
     return trial_dir, outcome, ticks, inference_log, duration, start_deg
 
 
@@ -308,6 +385,12 @@ def main():
     p.add_argument("--fake-policy", action="store_true")
     p.add_argument("--auto-outcome", choices=["success", "failure"],
                    help="Testing only: end each trial after --max-trial-s with this outcome, no keyboard")
+    p.add_argument("--dashboard", action="store_true",
+                   help="Serve the live browser dashboard with trial and motion controls")
+    p.add_argument("--dashboard-host", default="127.0.0.1")
+    p.add_argument("--dashboard-port", type=int, default=8765)
+    p.add_argument("--no-dashboard-browser", action="store_true",
+                   help="Serve the dashboard without opening it automatically")
     args = p.parse_args()
 
     if args.dry_run:
@@ -338,6 +421,18 @@ def main():
     camera = cam.CameraRecorder(source)
     camera.start()
 
+    dashboard = None
+    if args.dashboard:
+        from dashboard import LiveDashboard
+        dashboard = LiveDashboard(
+            args.dashboard_host, args.dashboard_port,
+            open_browser=not args.no_dashboard_browser).start()
+        dashboard.update(
+            status="READY", mode="TELEOP", task=args.task, condition=args.condition,
+            checkpoint=args.checkpoint_label, max_trial_s=args.max_trial_s,
+            camera_fps=source.actual_settings().get("fps_reported_by_driver", 0.0),
+            control_hz=args.fps, replan_steps=args.replan_steps)
+
     if args.fake_policy:
         policy = HoldPolicy()
     else:
@@ -360,7 +455,7 @@ def main():
                 keys = key_pressed
             print("  running... s = success, f = failure, SPACE = abort")
             trial_dir, outcome, ticks, inference_log, duration, start_deg = run_trial(
-                args, index, follower, camera, policy, robot, out_root, keys)
+                args, index, follower, camera, policy, robot, out_root, keys, dashboard)
             if outcome == "timeout" and args.auto_outcome:
                 outcome = args.auto_outcome
             note = "" if args.auto_outcome else input(f"  outcome={outcome}. Failure/observation note (ENTER to skip): ")
@@ -386,6 +481,8 @@ def main():
         camera.stop()
         follower.close()
         policy.close()
+        if dashboard:
+            dashboard.stop()
 
 
 if __name__ == "__main__":
