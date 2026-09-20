@@ -47,13 +47,15 @@ def test_dashboard_state_and_frame_are_thread_safe():
     import dashboard
 
     state = dashboard.DashboardState()
-    state.update(status="RUNNING", commanded_deg=[90, 80, 100, 40])
+    state.update(status="RUNNING", commanded_deg=[90, 80, 100, 40],
+                 camera_name="Logitech Brio 101")
     state.add_event("start", 0.0)
     state.set_frame(np.zeros((48, 64, 3), dtype=np.uint8))
 
     snap = state.snapshot()
     assert snap["status"] == "RUNNING"
     assert snap["commanded_deg"] == [90, 80, 100, 40]
+    assert snap["camera_name"] == "Logitech Brio 101"
     assert snap["events"] == [{"label": "start", "t": 0.0, "color": "blue"}]
     assert state.jpeg().startswith(b"\xff\xd8")
 

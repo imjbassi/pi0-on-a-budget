@@ -1,0 +1,6 @@
+# Copy these lines to C:\Users\<you>\.wslconfig, then run `wsl --shutdown`
+# from PowerShell. This machine has 32 GB system RAM; 24 GB leaves 8 GB for
+# Windows. Do not shut WSL down while training or another WSL job is active.
+[wsl2]
+memory=24GB
+swap=16GB

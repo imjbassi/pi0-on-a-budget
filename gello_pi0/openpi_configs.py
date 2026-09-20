@@ -4,7 +4,7 @@ openpi_configs.py — gello-lite policy transforms and training configs for open
 Modeled on openpi's libero_policy.py and LeRobotLiberoDataConfig, with these
 deliberate differences (each one a departure from openpi's documented recipe):
 
-  1. One camera. The ZV-1F frame is base_0_rgb; both wrist slots are zero images.
+  1. One camera. The Logitech Brio 101 frame is base_0_rgb; both wrist slots are zero images.
   2. 4-dim state/actions: base, shoulder, elbow (rad) + gripper (0..1).
   3. Absolute joint targets in the dataset -> DeltaActions on the 3 joints,
      gripper stays absolute (openpi's convention).

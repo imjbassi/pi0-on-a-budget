@@ -16,8 +16,8 @@ host_mono (time.perf_counter) is the clock to align joints and frames on —
 host_time (time.time) is kept for wall-clock reference only.
 
 Joint values are the smoothed leader angles teleop.ino *commands* to the
-servos, in degrees. SG90s give no position feedback, so there is no measured
-follower state.
+servos, in degrees. The SG90/MG90S servos give no position feedback, so there
+is no measured follower state.
 
 Episode numbering continues from whatever is already in --outdir, so a second
 recording session never overwrites the first.
@@ -188,7 +188,7 @@ class EpisodeRecorder:
             "joints": JOINTS,
             "joint_units": "degrees",
             "joint_semantics": "smoothed leader angle commanded to the follower servo "
-                               "(SG90s have no position feedback)",
+                               "(SG90/MG90S servos have no position feedback)",
             "timing": {
                 "sync_clock": "host_mono = time.perf_counter() on the recording PC",
                 "started_mono": started_mono,
@@ -295,7 +295,9 @@ def open_camera(args):
         source = cam.FakeSource(args.width, args.height, args.fps)
     else:
         try:
-            source = cam.OpenCVSource(args.camera, args.width, args.height, args.fps, args.backend)
+            source = cam.OpenCVSource(
+                args.camera, args.width, args.height, args.fps, args.backend,
+                label=args.camera_label)
         except RuntimeError as e:
             print(f"[FAIL] {e}")
             sys.exit(1)
@@ -316,6 +318,8 @@ def main():
     parser.add_argument("--camera", type=int,
                         help="OpenCV camera index (required: index 0 is often a virtual camera, "
                              "e.g. NVIDIA Broadcast, not your real one)")
+    parser.add_argument("--camera-label", default="Logitech Brio 101",
+                        help="Human-readable device name saved in episode metadata")
     parser.add_argument("--backend", choices=sorted(cam.BACKENDS), default="dshow")
     parser.add_argument("--width", type=int, default=1280)
     parser.add_argument("--height", type=int, default=720)

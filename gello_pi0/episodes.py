@@ -16,7 +16,8 @@ Resampling, per episode:
      state[k]  = joint command interpolated at t_k
      action[k] = joint command interpolated at t_{k+1}  (the next target)
 
-"state" is the commanded angle, not a measured position — SG90s give no feedback.
+"state" is the commanded angle, not a measured position — the SG90/MG90S servos
+give no feedback.
 """
 
 import csv

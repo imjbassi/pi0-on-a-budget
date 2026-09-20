@@ -16,7 +16,7 @@ and a conversion report (split, per-episode resampling stats, settings) to
     $HF_LEROBOT_HOME/local/<name>_conversion.json
 
 Schema follows openpi's LIBERO example (examples/libero/convert_libero_data_to_lerobot.py):
-    image    uint8 (224, 224, 3)   ZV-1F frame, letterboxed
+    image    uint8 (224, 224, 3)   Logitech Brio 101 frame, letterboxed
     state    float32 (4,)          commanded [base, shoulder, elbow] rad + gripper 0..1
     actions  float32 (4,)          next commanded target, same units (absolute;
                                    openpi's DeltaActions converts joints to deltas)

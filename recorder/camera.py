@@ -32,15 +32,16 @@ BACKENDS = {"dshow": cv2.CAP_DSHOW, "msmf": cv2.CAP_MSMF, "any": cv2.CAP_ANY}
 class OpenCVSource:
     """A real camera opened through OpenCV."""
 
-    def __init__(self, index=0, width=1280, height=720, fps=30, backend="dshow"):
+    def __init__(self, index=0, width=1280, height=720, fps=30, backend="dshow", label=None):
         self.index = index
         self.backend = backend
+        self.label = label
         self.cap = cv2.VideoCapture(index, BACKENDS[backend])
         if not self.cap.isOpened():
             raise RuntimeError(
                 f"Could not open camera index {index} with backend '{backend}'. "
-                "Run with --list-cameras, and for the Sony ZV-1 make sure USB "
-                "Streaming mode is enabled on the camera."
+                "Run recorder/record_episode.py --list-cameras and verify the "
+                "Logitech Brio 101 is not already open in another application."
             )
         # Requests only — the driver may silently pick something else.
         # actual_settings() reports what was really negotiated.
@@ -58,6 +59,7 @@ class OpenCVSource:
     def actual_settings(self):
         return {
             "source": f"opencv:{self.index}:{self.backend}",
+            "device_name": self.label,
             "width": int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
             "height": int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)),
             "fps_reported_by_driver": float(self.cap.get(cv2.CAP_PROP_FPS)),

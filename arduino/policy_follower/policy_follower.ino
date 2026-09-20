@@ -23,7 +23,7 @@
  *   - targets clamped to JOINT_MIN / JOINT_MAX
  *   - each joint moves at most MAX_STEP_DEG per 20 ms loop
  *   - if commands stop for WATCHDOG_MS, servos hold their last written angle
- *     (they are not released; SG90s would drop under gravity)
+ *     (they are not released; the hobby servos would drop under gravity)
  *
  * Copy JOINT_MIN / JOINT_MAX / POT_MIN / POT_MAX / INVERT / SMOOTHING from your
  * calibrated teleop.ino so both sketches agree.

@@ -7,8 +7,9 @@
  * policy trained on recordings will command different angles than the operator
  * demonstrated.
  *
- * Reads four potentiometers (the leader) and drives four SG90 servos (the
- * follower) with a direct 1:1 joint-space mapping. No inverse kinematics.
+ * Reads four potentiometers (the leader) and drives the follower's hobby
+ * servos (MG90S shoulder/elbow; SG90 base/gripper) with a direct 1:1
+ * joint-space mapping. No inverse kinematics.
  *
  * Also streams joint angles over serial as CSV, so record_episode.py can
  * record demonstration episodes.

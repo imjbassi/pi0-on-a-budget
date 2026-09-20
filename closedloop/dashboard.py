@@ -31,6 +31,7 @@ class DashboardState:
             "max_trial_s": 0.0,
             "frame": 0,
             "camera_fps": 0.0,
+            "camera_name": "",
             "control_hz": 0.0,
             "frame_age_ms": None,
             "serial_age_ms": None,

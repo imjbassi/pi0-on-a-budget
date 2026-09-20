@@ -2,10 +2,30 @@
 
 What actually happened, including failures. Newest first.
 
+## 2026-09-20 — Dashboard hardware path and RTX shadow setup
+
+- The browser dashboard, real camera path, and Arduino telemetry are working.
+- Deployment camera changed from the Sony ZV-1F to a Logitech Brio 101. The
+  project requests 1280×720 at 30 fps; delivered resolution, frame pacing, and
+  gaps have not yet been benchmarked for the Brio, so no Sony measurements are
+  being reused as if they applied to the new camera.
+- Shoulder and elbow servos are now MG90S; base and gripper remain SG90. These
+  hobby servos report no measured position, so dashboard joint values remain
+  firmware/command angles.
+- A real base π0-FAST shadow-server attempt restored from the 10.85 GB checkpoint
+  on `/mnt/d` and failed before serving with TensorStore `OS error 12: ENOMEM`.
+  This was host/checkpoint-read memory exhaustion, not a CUDA out-of-memory
+  result. At inspection time WSL was limited to roughly 15 GB RAM and 4 GB swap
+  on a 32 GB Windows machine.
+- The documented recovery uses a 24 GB WSL memory cap, 16 GB swap, and a
+  WSL-ext4 copy of the base params at `~/pi0-cache/pi0_fast_base/params`.
+  Successful server startup after this change has not yet been recorded.
+
 ## 2026-09-19 — Arm rebuilt (EEZYbotARM), joint limits measured
 
-Follower is now a 3D-printed [EEZYbotARM](https://www.instructables.com/EEZYbotARM/) with
-4 SG90s, replacing the acrylic SNAM1500-style kit. Limits found with `limit_finder.ino`:
+Follower is now a 3D-printed [EEZYbotARM](https://www.instructables.com/EEZYbotARM/),
+replacing the acrylic SNAM1500-style kit. The shoulder and elbow were subsequently
+changed to MG90S; base and gripper use SG90. Limits found with `limit_finder.ino`:
 
 | Joint | Min | Max | Travel |
 |---|---|---|---|
@@ -20,7 +40,8 @@ recorded actions will have small variance, which makes the "hold still" open-loo
 even harder to beat. Whether the reachable workspace covers the task at all is the first
 thing to check when placing the camera and the block.
 
-Still unknown: which gripper angle is open vs closed; pot calibration not yet run.
+Gripper direction was later confirmed: 180° open and 40° closed. Pot range was
+confirmed as 0–1023 on all four channels.
 
 ## 2026-09-16 — 12 GB memory test: first attempt did not produce a measurement
 

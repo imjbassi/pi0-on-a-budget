@@ -487,6 +487,11 @@ def main():
     p.add_argument("--baud", type=int, default=115200)
     p.add_argument("--camera", type=int)
     p.add_argument("--backend", default="dshow")
+    p.add_argument("--camera-label", default="Logitech Brio 101",
+                   help="Human-readable camera name shown in the dashboard")
+    p.add_argument("--camera-width", type=int, default=1280)
+    p.add_argument("--camera-height", type=int, default=720)
+    p.add_argument("--camera-fps", type=float, default=30.0)
     p.add_argument("--robot-config", required=True)
     p.add_argument("--server", default="ws://localhost:8000")
     p.add_argument("--task", required=True)
@@ -545,11 +550,13 @@ def main():
     follower = Follower(ser)
 
     if args.fake_camera:
-        source = cam.FakeSource(1280, 720, 30)
+        source = cam.FakeSource(args.camera_width, args.camera_height, args.camera_fps)
     else:
         if args.camera is None:
             p.error("--camera is required (see recorder/record_episode.py --list-cameras)")
-        source = cam.OpenCVSource(args.camera, 1280, 720, 30, args.backend)
+        source = cam.OpenCVSource(
+            args.camera, args.camera_width, args.camera_height, args.camera_fps,
+            args.backend, label=args.camera_label)
     camera = cam.CameraRecorder(source)
     camera.start()
 
@@ -559,10 +566,12 @@ def main():
         dashboard = LiveDashboard(
             args.dashboard_host, args.dashboard_port,
             open_browser=not args.no_dashboard_browser).start()
+        camera_settings = source.actual_settings()
         dashboard.update(
             status="READY", mode="TELEOP", task=args.task, condition=args.condition,
             checkpoint=args.checkpoint_label, max_trial_s=args.max_trial_s,
-            camera_fps=source.actual_settings().get("fps_reported_by_driver", 0.0),
+            camera_name=camera_settings.get("device_name") or camera_settings["source"],
+            camera_fps=camera_settings.get("fps_reported_by_driver", 0.0),
             control_hz=args.fps, replan_steps=args.replan_steps)
 
     if args.monitor_only:

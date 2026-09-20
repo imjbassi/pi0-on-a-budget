@@ -26,7 +26,7 @@ body{padding:10px}.shell{height:calc(100vh - 20px);display:grid;grid-template-co
   <section class="section action"><h2>ACTION</h2><pre id="action">target  —
 command —</pre></section>
   <section class="section memory"><h2>RUN STATE</h2><p id="memory">No trial active.</p></section>
-  <div class="foot">Joint values are servo commands/firmware state. SG90 servos do not provide physical position feedback.</div>
+  <div class="foot">Joint values are servo commands/firmware state. SG90/MG90S servos do not provide physical position feedback.</div>
 </aside>
 <main class="card main">
   <header class="runhead"><div><div class="runname" id="runname">LIVE RUN · waiting</div><div class="meta" id="meta">π0-FAST + LoRA | closed-loop</div></div><div class="buttons"><button class="btn pause" id="pause">Ⅱ Pause</button><button class="btn success" id="success">✓ Success</button><button class="btn failure" id="failure">× Failure</button><button class="btn stop" id="stop">■ STOP / HOLD</button></div></header>
@@ -58,7 +58,7 @@ async function refresh(){try{
  $('runname').textContent='LIVE RUN · '+(d.trial===null?'waiting':'trial_'+String(d.trial).padStart(4,'0'))+' · '+(d.condition||'—');
  $('meta').textContent=(d.shadow_policy?'RTX POLICY · SHADOW · NOT EXECUTED':'π0-FAST + LoRA · closed-loop')+' | camera '+(+d.camera_fps||0).toFixed(1)+' FPS | control '+(+d.control_hz||0).toFixed(1)+' Hz';
  $('live').textContent=d.paused?'● PAUSED':d.status==='RUNNING'?'● LIVE':'● '+d.status;$('live').className=d.paused?'paused':d.status==='RUNNING'?'live':'warn';
- $('caminfo').textContent='frame age '+val(d.frame_age_ms)+' ms';
+ $('caminfo').textContent=(d.camera_name||'camera')+' · frame age '+val(d.frame_age_ms)+' ms';
  $('observation').textContent='Camera frame '+val(d.frame)+'. Firmware state '+angles(d.firmware_deg).join(', ')+'. Frame age '+val(d.frame_age_ms)+' ms.';
  $('policy').textContent=d.monitor_only?'Policy disabled. This mode reads the camera and Arduino stream without sending motion commands.':d.action_chunk_deg&&d.action_chunk_deg.length?(d.shadow_policy?'Real RTX prediction: ':'Latest action chunk: ')+d.action_chunk_deg.length+' poses. '+(d.shadow_policy?'Prediction is displayed only; Arduino remains in TELEOP.':'Executing '+d.queue_remaining+' remaining before replanning.'):'Waiting for the first action chunk. π0-FAST emits actions directly; no text reasoning is fabricated.';
  $('action').textContent='target  [ '+angles(d.target_deg).join(', ')+' ]\ncommand [ '+angles(d.commanded_deg).join(', ')+' ]';

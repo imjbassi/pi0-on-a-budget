@@ -2,7 +2,7 @@
 
 Fine-tuning Physical Intelligence's [π0-FAST](https://github.com/Physical-Intelligence/openpi)
 with LoRA on a consumer RTX 4070 (12 GB), using demonstrations from
-[gello-lite](https://github.com/imjbassi/gello-lite) — a 4-DOF, SG90-servo,
+[gello-lite](https://github.com/imjbassi/gello-lite) — a 4-DOF hobby-servo,
 potentiometer-leader teleoperation arm — then evaluating open-loop vs closed-loop.
 
 Negative results are documented as results. Measured numbers live in [RESULTS.md](RESULTS.md).
@@ -11,24 +11,25 @@ Negative results are documented as results. Measured numbers live in [RESULTS.md
 
 | Phase | State |
 |---|---|
-| 0. Recorder: joints + camera | Built. Real ZV-1F camera tested (720p, 30 fps, no gaps). Joint stream tested with simulated serial only. |
+| 0. Recorder: joints + camera | Built. Arduino telemetry and the live camera/dashboard path have run on hardware. Current deployment camera is a Logitech Brio 101 at 1280×720/30 fps; formal Brio timing validation is still pending. The previous ZV-1F measurement remains in `RESULTS.md` as historical data. |
 | 1. Recorder → LeRobot converter | Built. Verified on synthetic episodes through openpi's own data loader (chunks match exactly). |
 | 1b. WSL2 + openpi + GPU | Done. openpi `215abfb`, JAX sees the RTX 4070. |
-| 2a. 12 GB memory test | **No valid measurement yet.** First attempt failed loading weights on the host (another GPU job running, weights on slow `/mnt/d`). See [RESULTS.md](RESULTS.md). |
-| 2b. Fine-tuning on real episodes | Blocked: arm disassembled, 0 real episodes. |
+| 2a. 12 GB memory test | **No valid training measurement yet.** Loading from `/mnt/d` failed with host `ENOMEM`; the shadow helper now copies params to WSL ext4 and the documented WSL profile provides 24 GB RAM + 16 GB swap. See [RESULTS.md](RESULTS.md). |
+| 2b. Fine-tuning on real episodes | Waiting on data collection: arm rebuilt and calibrated, 0 real episodes recorded. |
 | 3. Open-loop eval, closed-loop controller, analysis | Built; tested with fakes (dry-run controller, hold-policy). Not run on real data. |
-| Arduino `policy_follower.ino` | Written, **not yet compiled or run** on the Nano. |
+| Arduino `policy_follower.ino` | Running on the Nano for dashboard telemetry/shadow mode. Limits match `config/robot.json`; closed-loop policy execution remains unvalidated. |
 
 ### Known risks, stated up front
 - **Memory.** openpi documents LoRA fine-tuning as needing **> 22.5 GB**. Its stock
   π0-FAST LoRA config freezes only the language model; the ~400M-param image encoder
   still trains in float32 with AdamW state. This project also freezes the image
-  encoder — a departure from openpi's recipe. The base checkpoint is 10.85 GB and WSL
-  has 15 GB of RAM, so host memory is a second constraint.
+  encoder — a departure from openpi's recipe. The base checkpoint is 10.85 GB;
+  WSL's former 15 GB default caused host-side restore failures, so inference now
+  uses the documented 24 GB WSL profile and an ext4-local parameter copy.
 - **Embodiment.** π0's pretraining normalization stats cover ALOHA, Franka, UR5e, ARX
   arms (6–7 DOF, industrial actuators). Nothing resembles a 4-DOF hobby-servo arm, so
   fresh norm stats are used and transfer may be weak.
-- **No measured state.** SG90s have no position feedback. "State" is the commanded
+- **No measured state.** The SG90/MG90S servos have no position feedback. "State" is the commanded
   angle, not the arm's actual position — in training and on the real arm alike.
 - **Hold baseline.** At 30 fps consecutive commands are nearly identical, so "don't
   move" already scores a low open-loop error. Every open-loop number is reported next
@@ -51,13 +52,15 @@ gello_pi0/           shared conventions + everything that runs in openpi (WSL)
   analyze.py           open-loop vs closed-loop, overall and per condition
 closedloop/          Windows: drive the real arm with the policy, score trials
 arduino/             policy_follower.ino (teleop mode + serial command mode)
-config/robot.json    gripper direction + limits — fill in on the rebuilt arm
+config/robot.json    confirmed gripper direction + measured hardware limits
 tools/               synthetic episode generator
 wsl/                 openpi setup + environment wrapper
 ```
 
-Large files (model weights, datasets, checkpoints) go to `D:\pi0-on-a-budget-runs`;
-the WSL virtual disk is on C:, which has little free space.
+Large datasets and training checkpoints go to `D:\pi0-on-a-budget-runs`. The
+inference helper makes one deliberate exception: it copies the 10.85 GB base
+parameters to `~/pi0-cache` inside WSL because TensorStore reads from `/mnt/d`
+failed with `OS error 12: ENOMEM` on this machine.
 
 ## Workflow
 
@@ -65,7 +68,7 @@ the WSL virtual disk is on C:, which has little free space.
 ```
 pip install -r recorder/requirements.txt
 python recorder/record_episode.py --list-cameras
-python recorder/record_episode.py --port COM3 --camera 0 --task "pick up the red block" --condition block_left --outdir D:/pi0-on-a-budget-runs/episodes
+python recorder/record_episode.py --port COM3 --camera 0 --camera-label "Logitech Brio 101" --width 1280 --height 720 --fps 30 --task "pick up the red block" --condition block_left --outdir D:/pi0-on-a-budget-runs/episodes
 python recorder/sync_report.py D:/pi0-on-a-budget-runs/episodes
 ```
 `--condition` labels the scene setup (e.g. block position). It stratifies the held-out
@@ -95,7 +98,7 @@ bash wsl/run.sh python -m gello_pi0.eval_open_loop --config gello_lora --checkpo
 Closed-loop: flash `arduino/policy_follower`, start the server in WSL, run trials on Windows:
 ```
 bash wsl/run.sh python -m gello_pi0.run serve policy:checkpoint --policy.config gello_lora --policy.dir /mnt/d/pi0-on-a-budget-runs/checkpoints/gello_lora/run1/2999
-python closedloop/closed_loop.py --dashboard --port COM3 --camera 0 --robot-config config/robot.json --task "pick up the red block" --condition block_left --checkpoint-label run1_2999 --trials 10 --outdir D:/pi0-on-a-budget-runs/closed_loop
+python closedloop/closed_loop.py --dashboard --port COM3 --camera 0 --camera-label "Logitech Brio 101" --robot-config config/robot.json --task "pick up the red block" --condition block_left --checkpoint-label run1_2999 --trials 10 --outdir D:/pi0-on-a-budget-runs/closed_loop
 ```
 Try it with no hardware first: `python closedloop/closed_loop.py --dry-run --robot-config config/robot_fake.json --task t --condition c --checkpoint-label dry --trials 1`.
 
@@ -111,7 +114,7 @@ emergency control. Use
 `--no-dashboard-browser` to serve it without opening a browser automatically.
 
 The dashboard deliberately labels the joint display **firmware → command**.
-SG90 servos have no encoder feedback, so neither value is a measured physical
+The SG90/MG90S servos have no encoder feedback, so neither value is a measured physical
 joint angle. No visual joint tracking is required. It also does not invent a
 natural-language chain of thought: π0-FAST returns an action chunk, and that real
 chunk is what the policy panel reports.
@@ -121,7 +124,8 @@ sending motion commands, use monitor-only mode (servo power may remain
 disconnected):
 ```
 python closedloop/closed_loop.py --dashboard --monitor-only --backend any \
-  --port /dev/cu.usbserial-110 --camera 0 --robot-config config/robot.json \
+  --port /dev/cu.usbserial-110 --camera 0 --camera-label "Logitech Brio 101" \
+  --robot-config config/robot.json \
   --task monitor --condition bench --checkpoint-label monitor
 ```
 The Arduino must be running `policy_follower.ino`. Monitor-only mode permits an
@@ -136,22 +140,61 @@ server, displays its latency and predicted action chunks, and never forwards
 those actions to the Arduino. The arm remains in TELEOP and may be moved with
 the leader while recording the dashboard.
 
-Prepare a lightweight shadow checkpoint on the RTX PC:
+### RTX PC preparation
+
+The policy server needs more host memory while Orbax restores the model. On
+this 32 GB PC, copy `wsl/wslconfig.example` to
+`C:\Users\<you>\.wslconfig`, or create the equivalent file:
+
+```ini
+[wsl2]
+memory=24GB
+swap=16GB
+```
+
+Apply it from PowerShell only when no WSL training job is active:
+
+```powershell
+wsl --shutdown
+```
+
+Prepare the shadow checkpoint. The first run copies about 10.85 GB from D: to
+WSL's Linux filesystem; later runs synchronize only changes:
+
 ```
 wsl bash wsl/prepare_shadow_checkpoint.sh
 ```
 
-Start the RTX server from the repository root:
-```
-wsl bash wsl/run.sh python -m gello_pi0.run serve --port 8000 \
-  policy:checkpoint --policy.config gello_fake_lora \
-  --policy.dir /mnt/d/pi0-on-a-budget-runs/shadow/pi0_fast_gello_fake
+From **PowerShell**, change directory with `Set-Location` (`cd /d` is Command
+Prompt syntax), then start the RTX server:
+
+```powershell
+Set-Location "C:\Users\jaive.DESKTOP-3TNM9JL\Desktop\pi0-on-a-budget"
+wsl bash wsl/run.sh python -m gello_pi0.run serve --port 8000 policy:checkpoint --policy.config gello_fake_lora --policy.dir /mnt/d/pi0-on-a-budget-runs/shadow/pi0_fast_gello_fake
 ```
 
-Then run on the Mac, replacing `WINDOWS_PC_IP`:
+Do not add backslashes before underscores. ROCm and TPU initialization warnings
+are expected on the NVIDIA PC. The server is ready only after it reports that
+it is serving/listening on port 8000; a traceback followed by the PowerShell
+prompt means it stopped. Initial loading can take several minutes.
+
+### Mac dashboard + Logitech Brio 101
+
+Connect the Brio 101 and Arduino to the Mac. Find the camera index and serial
+port each session:
+
+```bash
+python recorder/record_episode.py --list-cameras --backend any
+ls /dev/cu.*
+nc -vz WINDOWS_PC_IP 8000
+```
+
+Then run, replacing `WINDOWS_PC_IP` and the camera index if necessary:
+
 ```
 python closedloop/closed_loop.py --dashboard --shadow-policy --backend any \
-  --port /dev/cu.usbserial-110 --camera 0 \
+  --port /dev/cu.usbserial-110 --camera 0 --camera-label "Logitech Brio 101" \
+  --camera-width 1280 --camera-height 720 --camera-fps 30 \
   --server ws://WINDOWS_PC_IP:8000 --robot-config config/robot.json \
   --task "pick up the red block" --condition block_center \
   --checkpoint-label base_shadow --trials 1 --max-trial-s 60
@@ -168,21 +211,22 @@ python -m gello_pi0.analyze --open-loop run1_2999=<.../2999/open_loop/summary.js
 ### Tests
 `python -m pytest tests` (Windows, no hardware). `loadback_check` is the WSL-side test.
 
-## Sony ZV-1F camera
-Measured on this PC (USB streaming, DirectShow), 10 s runs:
+## Logitech Brio 101 camera
 
-| Requested | Delivered | fps measured | Frame interval median / p95 / max | Gaps |
-|---|---|---|---|---|
-| 1280×720 | 1280×720 | 30.01 | 33.3 / 42.2 / 47.0 ms | 0 |
-| 1920×1080 | 1280×720 (request ignored) | 29.99 | 33.4 / 42.9 / 45.6 ms | 0 |
+The current camera target is 1280×720 at 30 fps. OpenCV indices can change when
+virtual cameras or other USB cameras are added, so run `--list-cameras` each
+session. OpenCV does not reliably expose device names; `--camera-label` records
+the intended device in episode metadata and displays it in the UI, but the
+numeric `--camera` index still selects the hardware.
 
-OpenCV lists the ZV-1F as index 0; NVIDIA Broadcast virtual cameras are 1 and 2.
-Indexes can shift, so check `--list-cameras` each session.
-
-- Fixed ultra-wide lens: mount it close enough that arm and objects fill the frame
-  (training downsizes to 224×224, letterboxed).
-- Manual focus, manual exposure/ISO, fixed white balance, SteadyShot off.
-- Disable auto power-off. Mount rigidly; don't move it between episodes or trials.
+- Close Zoom, FaceTime, OBS, browser camera tabs, and Logitech utilities before
+  starting; another application may hold the camera.
+- Mount the Brio rigidly with the complete arm and task workspace in frame.
+- Keep resolution, position, field of view, exposure, white balance, and room
+  lighting fixed between demonstrations and policy runs.
+- The model input is letterboxed to 224×224, so 720p is sufficient and reduces
+  USB/decode load. Verify delivered resolution and measured fps in the recorder
+  metadata instead of assuming the driver honored the request.
 
 ## Frame/joint timing
 Frames are paired with joint commands by **arrival time** on the PC. The camera's
