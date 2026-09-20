@@ -2,8 +2,8 @@
 
 Fine-tuning Physical Intelligence's [π0-FAST](https://github.com/Physical-Intelligence/openpi)
 with LoRA on a consumer RTX 4070 (12 GB), using demonstrations from
-[gello-lite](https://github.com/imjbassi/gello-lite) — a 4-DOF hobby-servo,
-potentiometer-leader teleoperation arm — then evaluating open-loop vs closed-loop.
+[gello-lite](https://github.com/imjbassi/gello-lite), a 4-DOF hobby-servo
+potentiometer-leader teleoperation arm, then evaluating open-loop vs closed-loop.
 
 Negative results are documented as results. Measured numbers live in [RESULTS.md](RESULTS.md).
 
@@ -23,14 +23,14 @@ Negative results are documented as results. Measured numbers live in [RESULTS.md
 - **Memory.** openpi documents LoRA fine-tuning as needing **> 22.5 GB**. Its stock
   π0-FAST LoRA config freezes only the language model; the ~400M-param image encoder
   still trains in float32 with AdamW state. This project also freezes the image
-  encoder — a departure from openpi's recipe. The base checkpoint is 10.85 GB;
+  encoder, a departure from openpi's recipe. The base checkpoint is 10.85 GB;
   WSL's former 15 GB default caused host-side restore failures, so inference now
   uses the documented 24 GB WSL profile and an ext4-local parameter copy.
 - **Embodiment.** π0's pretraining normalization stats cover ALOHA, Franka, UR5e, ARX
   arms (6–7 DOF, industrial actuators). Nothing resembles a 4-DOF hobby-servo arm, so
   fresh norm stats are used and transfer may be weak.
 - **No measured state.** The SG90/MG90S servos have no position feedback. "State" is the commanded
-  angle, not the arm's actual position — in training and on the real arm alike.
+  angle, not the arm's actual position, in training and on the real arm alike.
 - **Hold baseline.** At 30 fps consecutive commands are nearly identical, so "don't
   move" already scores a low open-loop error. Every open-loop number is reported next
   to that baseline.
@@ -240,5 +240,5 @@ numeric `--camera` index still selects the hardware.
 
 ## Frame/joint timing
 Frames are paired with joint commands by **arrival time** on the PC. The camera's
-own delay is not subtracted — deliberately: `closed_loop.py` pairs the newest frame
+own delay is deliberately not subtracted: `closed_loop.py` pairs the newest frame
 with the current command the same way, so training matches deployment.
