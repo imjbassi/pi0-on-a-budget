@@ -170,13 +170,18 @@ Prompt syntax), then start the RTX server:
 
 ```powershell
 Set-Location "C:\Users\jaive.DESKTOP-3TNM9JL\Desktop\pi0-on-a-budget"
-wsl bash wsl/run.sh python -m gello_pi0.run serve --port 8000 policy:checkpoint --policy.config gello_fake_lora --policy.dir /mnt/d/pi0-on-a-budget-runs/shadow/pi0_fast_gello_fake
+wsl bash wsl/run.sh python -m gello_pi0.run serve --port 8000 policy:checkpoint --policy.config gello_fake_base --policy.dir /mnt/d/pi0-on-a-budget-runs/shadow/pi0_fast_gello_fake
 ```
 
 Do not add backslashes before underscores. ROCm and TPU initialization warnings
 are expected on the NVIDIA PC. The server is ready only after it reports that
 it is serving/listening on port 8000; a traceback followed by the PowerShell
 prompt means it stopped. Initial loading can take several minutes.
+
+`gello_fake_base` is intentional here: the shadow directory points to the
+unmodified π0-FAST base checkpoint, which has no LoRA adapter tensors. Using
+`gello_fake_lora` with those params fails with a PyTree `lora_a`/`lora_b`
+structure mismatch. Use `gello_lora` only with a real trained LoRA checkpoint.
 
 ### Mac dashboard + Logitech Brio 101
 

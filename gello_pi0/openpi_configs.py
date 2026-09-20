@@ -105,12 +105,12 @@ class LeRobotGelloDataConfig(_config.DataConfigFactory):
         )
 
 
-def make_model_config(action_horizon=15):
+def make_model_config(action_horizon=15, paligemma_variant="gemma_2b_lora"):
     return pi0_fast.Pi0FASTConfig(
         action_dim=ACTION_DIM,
         action_horizon=action_horizon,
         max_token_len=180,
-        paligemma_variant="gemma_2b_lora",
+        paligemma_variant=paligemma_variant,
     )
 
 
@@ -122,8 +122,9 @@ def make_freeze_filter(model_config, freeze_vision=True):
 
 
 def make_train_config(name, repo_id, *, action_horizon=15, freeze_vision=True, batch_size=1,
-                      num_train_steps=3000, save_interval=500):
-    model = make_model_config(action_horizon)
+                      num_train_steps=3000, save_interval=500,
+                      paligemma_variant="gemma_2b_lora"):
+    model = make_model_config(action_horizon, paligemma_variant)
     return _config.TrainConfig(
         name=name,
         model=model,
@@ -147,6 +148,12 @@ def make_train_config(name, repo_id, *, action_horizon=15, freeze_vision=True, b
 
 
 CONFIGS = [
+    # Unmodified base checkpoint for safe shadow inference. Unlike the LoRA
+    # configs below, this must use gemma_2b because base params have no adapter
+    # tensors. It still uses the gello transforms and synthetic norm stats.
+    make_train_config(
+        "gello_fake_base", "local/gello_fake", freeze_vision=False,
+        paligemma_variant="gemma_2b"),
     # Synthetic data: pipeline + 12 GB memory test.
     make_train_config("gello_fake_lora", "local/gello_fake"),
     # Stock openpi freeze filter (image encoder trainable), for documenting the memory difference.

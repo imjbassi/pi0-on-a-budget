@@ -19,7 +19,14 @@ What actually happened, including failures. Newest first.
   on a 32 GB Windows machine.
 - The documented recovery uses a 24 GB WSL memory cap, 16 GB swap, and a
   WSL-ext4 copy of the base params at `~/pi0-cache/pi0_fast_base/params`.
-  Successful server startup after this change has not yet been recorded.
+- Moving the params fixed the read failure: Orbax restored 5.4 GiB at 101.8
+  MiB/s in 54.81 seconds. The next attempt exposed a separate configuration
+  error: `gello_fake_lora` expects `lora_a`/`lora_b` tensors that do not exist in
+  the unmodified base checkpoint. Shadow serving therefore uses the dedicated
+  non-LoRA `gello_fake_base` policy config. That configuration restored the same
+  checkpoint in 46.25 seconds, loaded normalization stats from the shadow
+  checkpoint, and successfully listened on `0.0.0.0:8000`. The verification
+  server was then stopped deliberately so it would not continue occupying the GPU.
 
 ## 2026-09-19 — Arm rebuilt (EEZYbotARM), joint limits measured
 

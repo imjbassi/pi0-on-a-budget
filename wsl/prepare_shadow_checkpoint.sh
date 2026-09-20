@@ -45,4 +45,5 @@ cp "$norm_stats" "$shadow_assets/norm_stats.json"
 
 echo "[OK] shadow checkpoint: $shadow_dir"
 echo "[OK] params -> $(readlink -f "$shadow_dir/params")"
+echo "[OK] serve with policy config: gello_fake_base"
 echo "[!!] Base policy + synthetic stats. Display predictions only; never execute them."
